@@ -167,6 +167,8 @@
     
     ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox/run_nmos_testing.sh "$run_python" ${domain} ${root_dir}/build/nmos-cpp-node ${root_dir}/build/nmos-cpp-registry results badges $GITHUB_STEP_SUMMARY ${{ env.HOST_IP_ADDRESS }} "${{ env.GITHUB_COMMIT }}-${{ env.BUILD_NAME }}-"
 
+    ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox/run_registry_stress_test.sh "$run_python" ${root_dir}/build/nmos-cpp-registry ${{ env.HOST_IP_ADDRESS }}
+    
     if [[ "${{ runner.os }}" == "Linux" ]]; then
       if [[ "${{ matrix.install_mdns }}" == "true" ]]; then
         ps -e | grep mdnsd || true
