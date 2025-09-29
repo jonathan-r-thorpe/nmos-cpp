@@ -9,10 +9,6 @@ shift
 host_ip=$1
 shift
 
-cd `dirname $0`
-self_dir=`pwd`
-cd -
-
 common_params=",\
   \"logging_level\":-40,\
   \"host_address\":\"${host_ip}\",\
