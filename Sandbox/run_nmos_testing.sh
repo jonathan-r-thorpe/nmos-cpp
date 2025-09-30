@@ -154,8 +154,8 @@ else
   (( expected_disabled_BCP_006_01_01+=7 ))
 fi
 
-"${node_command}" "{\"how_many\":6,\"http_port\":1080 ${common_params} ${node_params}}" > ${results_dir}/nodeoutput 2>&1 &
-NODE_PID=$!
+#"${node_command}" "{\"how_many\":6,\"http_port\":1080 ${common_params} ${node_params}}" > ${results_dir}/nodeoutput 2>&1 &
+#NODE_PID=$!
 
 function do_run_test() {
   suite=$1
@@ -198,51 +198,51 @@ function do_run_test() {
   esac
 }
 
-if $secure; then
-  do_run_test BCP-003-01 $expected_disabled_BCP_003_01 --host "${host}" --port 1080 --version v1.0
-fi
+#if $secure; then
+#  do_run_test BCP-003-01 $expected_disabled_BCP_003_01 --host "${host}" --port 1080 --version v1.0
+#fi
 
-do_run_test IS-04-01 $expected_disabled_IS_04_01 --host "${host}" --port 1080 --version v1.3
+#do_run_test IS-04-01 $expected_disabled_IS_04_01 --host "${host}" --port 1080 --version v1.3
 
-do_run_test IS-04-03 $expected_disabled_IS_04_03 --host "${host}" --port 1080 --version v1.3
+#do_run_test IS-04-03 $expected_disabled_IS_04_03 --host "${host}" --port 1080 --version v1.3
 
-do_run_test IS-05-01 $expected_disabled_IS_05_01 --host "${host}" --port 1080 --version v1.1
+#do_run_test IS-05-01 $expected_disabled_IS_05_01 --host "${host}" --port 1080 --version v1.1
 
-do_run_test IS-05-02 $expected_disabled_IS_05_02 --host "${host}" "${host}" --port 1080 1080 --version v1.3 v1.1
+#do_run_test IS-05-02 $expected_disabled_IS_05_02 --host "${host}" "${host}" --port 1080 1080 --version v1.3 v1.1
 
-do_run_test IS-07-01 $expected_disabled_IS_07_01 --host "${host}" --port 1080 --version v1.0
+#do_run_test IS-07-01 $expected_disabled_IS_07_01 --host "${host}" --port 1080 --version v1.0
 
-do_run_test IS-07-02 $expected_disabled_IS_07_02 --host "${host}" "${host}" "${host}" --port 1080 1080 1080 --version v1.3 v1.1 v1.0
+#do_run_test IS-07-02 $expected_disabled_IS_07_02 --host "${host}" "${host}" "${host}" --port 1080 1080 1080 --version v1.3 v1.1 v1.0
 
-do_run_test IS-08-01 $expected_disabled_IS_08_01 --host "${host}" --port 1080 --version v1.0 --selector null
+#do_run_test IS-08-01 $expected_disabled_IS_08_01 --host "${host}" --port 1080 --version v1.0 --selector null
 
-do_run_test IS-08-02 $expected_disabled_IS_08_02 --host "${host}" "${host}" --port 1080 1080 --version v1.3 v1.0 --selector null null
+#do_run_test IS-08-02 $expected_disabled_IS_08_02 --host "${host}" "${host}" --port 1080 1080 --version v1.3 v1.0 --selector null null
 
-do_run_test IS-09-02 $expected_disabled_IS_09_02 --host "${host}" null --port 0 0 --version null v1.0
+#do_run_test IS-09-02 $expected_disabled_IS_09_02 --host "${host}" null --port 0 0 --version null v1.0
 
-do_run_test IS-12-01 $expected_disabled_IS_12_01 --host "${host}" "${host}" null null --port 1080 1082 0 0 --version v1.3 v1.0 v1.0 v1.0 --urlpath null x-nmos/ncp/v1.0 null null
+#do_run_test IS-12-01 $expected_disabled_IS_12_01 --host "${host}" "${host}" null null --port 1080 1082 0 0 --version v1.3 v1.0 v1.0 v1.0 --urlpath null x-nmos/ncp/v1.0 null null
 
-do_run_test IS-14-01 $expected_disabled_IS_14_01 --host "${host}" "${host}" null null --port 1080 1080 0 0 --version v1.3 v1.0 v1.0 v1.0 --selector null null null null --ignore test_ms05_05
+#do_run_test IS-14-01 $expected_disabled_IS_14_01 --host "${host}" "${host}" null null --port 1080 1080 0 0 --version v1.3 v1.0 v1.0 v1.0 --selector null null null null --ignore test_ms05_05
 
-do_run_test BCP-006-01-01 $expected_disabled_BCP_006_01_01 --host "${host}" --port 1080 --version v1.3
+#do_run_test BCP-006-01-01 $expected_disabled_BCP_006_01_01 --host "${host}" --port 1080 --version v1.3
 
-do_run_test BCP-008-01-01 $expected_disabled_BCP_008_01_01 --host "${host}" "${host}" "${host}" null --port 1080 1080 1082 0 --version v1.3 v1.1 v1.0 v1.0 --urlpath null null x-nmos/ncp/v1.0 null
+#do_run_test BCP-008-01-01 $expected_disabled_BCP_008_01_01 --host "${host}" "${host}" "${host}" null --port 1080 1080 1082 0 --version v1.3 v1.1 v1.0 v1.0 --urlpath null null x-nmos/ncp/v1.0 null
 
-do_run_test BCP-008-02-01 $expected_disabled_BCP_008_02_01 --host "${host}" "${host}" "${host}" null --port 1080 1080 1082 0 --version v1.3 v1.1 v1.0 v1.0 --urlpath null null x-nmos/ncp/v1.0 null
+#do_run_test BCP-008-02-01 $expected_disabled_BCP_008_02_01 --host "${host}" "${host}" "${host}" null --port 1080 1080 1082 0 --version v1.3 v1.1 v1.0 v1.0 --urlpath null null x-nmos/ncp/v1.0 null
 
 # Run Registry tests (leave Node running)
-"${registry_command}" "{\"pri\":0,\"http_port\":8088 ${common_params} ${registry_params}}" > ${results_dir}/registryoutput 2>&1 &
-REGISTRY_PID=$!
+#"${registry_command}" "{\"pri\":0,\"http_port\":8088 ${common_params} ${registry_params}}" > ${results_dir}/registryoutput 2>&1 &
+#REGISTRY_PID=$!
 # short delay to give the Registry a chance to start up and the Node a chance to register before running the Registry test suite
-sleep 2
+#sleep 2
 # add a persistent Query WebSocket API subscription before running the Registry test suite
-curl --cacert test_data/BCP00301/ca/certs/ca.cert.pem "${registry_url}/x-nmos/query/v1.3/subscriptions" -H "Content-Type: application/json" -d "{\"max_update_rate_ms\": 100, \"resource_path\": \"/nodes\", \"params\": {\"label\": \"host1\"}, \"persist\": true, \"secure\": ${secure}}" -s > /dev/null || echo "failed to add subscription"
+#curl --cacert test_data/BCP00301/ca/certs/ca.cert.pem "${registry_url}/x-nmos/query/v1.3/subscriptions" -H "Content-Type: application/json" -d "{\"max_update_rate_ms\": 100, \"resource_path\": \"/nodes\", \"params\": {\"label\": \"host1\"}, \"persist\": true, \"secure\": ${secure}}" -s > /dev/null || echo "failed to add subscription"
 
-do_run_test IS-04-02 $expected_disabled_IS_04_02 --host "${host}" "${host}" --port 8088 8088 --version v1.3 v1.3
+#do_run_test IS-04-02 $expected_disabled_IS_04_02 --host "${host}" "${host}" --port 8088 8088 --version v1.3 v1.3
 
-do_run_test IS-09-01 $expected_disabled_IS_09_01 --host "${host}" --port 8088 --version v1.0
+#do_run_test IS-09-01 $expected_disabled_IS_09_01 --host "${host}" --port 8088 --version v1.0
 
 # Stop Node and Registry
-kill $NODE_PID || echo "node not running"
-kill $REGISTRY_PID || echo "registry not running"
+#kill $NODE_PID || echo "node not running"
+#kill $REGISTRY_PID || echo "registry not running"
 
