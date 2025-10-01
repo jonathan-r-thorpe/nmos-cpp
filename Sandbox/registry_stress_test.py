@@ -89,5 +89,6 @@ def simulate_multiple_clients(host, port, num_clients):
 
 # Run the simulation
 if __name__ == "__main__":
+    print("*** Registry stress test ***")
     args = parse_arguments();
     simulate_multiple_clients(args.host, args.port, args.num_clients)
