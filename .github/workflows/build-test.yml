@@ -566,8 +566,9 @@ jobs:
       run: |
         set -x
         root_dir=`pwd`
+        run_python=`which python`
         cd nmos-testing
-        ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox/run_registry_stress_test.sh python ${root_dir}/build/nmos-cpp-registry results ${{ env.HOST_IP_ADDRESS }} ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox
+        ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox/run_registry_stress_test.sh "$run_python" ${root_dir}/build/nmos-cpp-registry results ${{ env.HOST_IP_ADDRESS }} ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox
         exit 0
 
     - name: upload to google sheets
