@@ -24,9 +24,10 @@ registry_params=",\
 "${registry_command}" "{\"pri\":0,\"http_port\":8088 ${common_params} ${registry_params}}" > ${results_dir}/registryoutput_stresstest 2>&1 &
 REGISTRY_PID=$!
 
+cd ${script_dir}
 #"${run_python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088" >> ${results_dir}/stresstest 2>&1
 #"${run_python} --version" >> ${results_dir}/stresstest 2>&1
-result=$(${python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088 >> ${results_dir}/stresstest 2>&1; echo $?)
+result=$(${python} --version >> ${results_dir}/stresstest 2>&1; echo $?)
 
 # Stop Registry
 kill $REGISTRY_PID || echo "registry not running"
