@@ -27,7 +27,7 @@ REGISTRY_PID=$!
 cd ${script_dir}
 #"${run_python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088" >> ${results_dir}/stresstest 2>&1
 #"${run_python} --version" >> ${results_dir}/stresstest 2>&1
-result=$(${python} --version >> ${results_dir}/stresstest 2>&1; echo $?)
+result=$(${run_python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088 >> ${results_dir}/stresstest 2>&1; echo $?)
 
 # Stop Registry
 kill $REGISTRY_PID || echo "registry not running"
