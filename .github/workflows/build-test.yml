@@ -369,6 +369,7 @@ jobs:
 
         # Install AMWA NMOS Testing Tool
         git clone https://github.com/AMWA-TV/nmos-testing.git
+        git checkout fix-mock-auth
         cd nmos-testing
 
         # Configure the Testing Tool so all APIs are tested with TLS and authorization
