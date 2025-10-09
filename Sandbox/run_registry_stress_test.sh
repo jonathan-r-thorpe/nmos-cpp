@@ -26,7 +26,7 @@ REGISTRY_PID=$!
 
 #"${run_python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088" >> ${results_dir}/stresstest 2>&1
 #"${run_python} --version" >> ${results_dir}/stresstest 2>&1
-result=$(${run_python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088 >> ${results_dir}/stresstest 2>&1; echo $?)
+result=$(${run_python} ${script_dir}/registry_stress_test.py --host ${host_ip} --port 8088 --num_clients 10000 >> ${results_dir}/stresstest 2>&1; echo $?)
 
 echo "Result of stress test"
 echo $result
