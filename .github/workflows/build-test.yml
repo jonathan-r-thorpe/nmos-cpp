@@ -562,6 +562,7 @@ jobs:
     - name: Stress test RDS
       shell: bash
       if: runner.os == 'Windows'
+      timeout-minutes: 5
       working-directory: ${{ env.RUNNER_WORKSPACE }}
       run: |
         set -x
