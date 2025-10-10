@@ -1,5 +1,6 @@
 import argparse
 import requests
+import sys
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -74,7 +75,7 @@ def generate_payload(index):
 def simulate_client(index, api_url):
     payload = generate_payload(index)
     try:
-        response = requests.post(api_url, headers=HEADERS, json=payload)
+        response = requests.post(api_url, headers=HEADERS, json=payload, timeout=60)
         print(f"Client {index} - Status {response.status_code} - Response: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Client {index} - Request failed: {e}")
@@ -92,3 +93,17 @@ if __name__ == "__main__":
     print("*** Registry stress test ***")
     args = parse_arguments();
     simulate_multiple_clients(args.host, args.port, args.num_clients)
+    
+    print("*** Check registry state ***")
+    api_url = f"http://{args.host}:{args.port}/x-nmos/"
+    try:
+        response = requests.get(api_url, headers=HEADERS, timeout=5)
+        # Registry reachable
+        print("*** Registry still reachable ***")
+        sys.exit(0)
+    except requests.exceptions.RequestException as e:
+        # Registry unreachable
+        print("*** Registry unreachable ***")
+        sys.exit(1)
+   
+    
