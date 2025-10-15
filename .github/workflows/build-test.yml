@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, windows-2022]
+        os: [ubuntu-22.04, ubuntu-24.04, windows-2022, macos-15-intel]
         install_mdns: [false, true]
         use_conan: [true]
         force_cpprest_asio: [false, true]
@@ -27,11 +27,18 @@ jobs:
           # install_mdns is only meaningful on Linux
           - os: windows-2022
             install_mdns: true
+          - os: macos-15-intel
+            install_mdns: true
+          # only test with authorization for macos and older Linux
+          - os: macos-15-intel  
+            enable_authorization: false
+          - os: ubuntu-22.04
+            enable_authorization: false
           # for now, unicast DNS-SD tests are only implemented on Linux
           - os: windows-2022
             dns_sd_mode: unicast
-          - os: ubuntu-22.04
-            enable_authorization: false
+          - os: macos-15-intel  
+            dns_sd_mode: unicast
           # don't force ASIO for ubuntu platforms
           - os: ubuntu-22.04
             force_cpprest_asio: true
@@ -559,6 +566,17 @@ jobs:
 
         exit 0
 
+    - name: Stress test RDS
+      shell: bash
+      timeout-minutes: 5
+      working-directory: ${{ env.RUNNER_WORKSPACE }}
+      run: |
+        set -x
+        root_dir=`pwd`
+        cd nmos-testing
+        ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox/registry_stress_test/run_registry_stress_test.sh python ${root_dir}/build/nmos-cpp-registry results ${{ env.HOST_IP_ADDRESS }} ${{ env.GITHUB_WORKSPACE_BASH }}/Sandbox/registry_stress_test
+        exit 0
+
     - name: upload to google sheets
       if: github.ref == 'refs/heads/master' && github.event_name == 'push'
       working-directory: ${{ env.RUNNER_WORKSPACE }}
@@ -600,7 +618,7 @@ jobs:
     - name: make badges
       run: |
         # combine badges from all builds, exclude macos-13
-        ${{ github.workspace }}/Sandbox/make_badges.sh ${{ github.workspace }} ${{ runner.workspace }}/artifacts macos-13_auth macos-13_noauth
+        ${{ github.workspace }}/Sandbox/make_badges.sh ${{ github.workspace }} ${{ runner.workspace }}/artifacts macos-15-intel_auth macos-15-intel_noauth
 
         # force push to github onto an orphan 'badges' branch
         cd ${{ github.workspace }}
