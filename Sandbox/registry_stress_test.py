@@ -104,6 +104,6 @@ if __name__ == "__main__":
     except requests.exceptions.RequestException as e:
         # Registry unreachable
         print("*** Registry unreachable ***")
-        sys.exit(1)
+        sys.exit(2)
    
     
