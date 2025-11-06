@@ -369,8 +369,8 @@ jobs:
 
         # Install AMWA NMOS Testing Tool
         git clone https://github.com/AMWA-TV/nmos-testing.git
-        git checkout garethsb-patch-1
         cd nmos-testing
+        git checkout garethsb-patch-1
 
         # Configure the Testing Tool so all APIs are tested with TLS and authorization
         printf "from . import Config as CONFIG\nCONFIG.ENABLE_HTTPS = True\nCONFIG.MOCK_SERVICES_WARM_UP_DELAY = 30\nCONFIG.HTTP_TIMEOUT = 2\n" > nmostesting/UserConfig.py
