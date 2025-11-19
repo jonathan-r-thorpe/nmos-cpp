@@ -1,3 +1,4 @@
+#pragma warning(4: 4996)
 #include "node_implementation.h"
 
 #include <boost/range/adaptor/filtered.hpp>
@@ -369,7 +370,7 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
         slog::log<slog::severities::severe>(gate, SLOG_FLF) << "No network interface corresponding to host_address?";
         throw node_implementation_init_exception();
     }
-    const auto& host_interface = *host_interface_;
+    //const auto& host_interface = *host_interface_;
     // hmm, should probably add a custom setting to control the primary and secondary interfaces for the example node's RTP senders and receivers
     // rather than just picking the one(s) corresponding to the first and last of the specified host addresses
     const auto& primary_address = model.settings.has_field(nmos::fields::host_addresses) ? web::json::front(nmos::fields::host_addresses(model.settings)).as_string() : host_address;
@@ -645,714 +646,32 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
         }
     }
 
-    // example event sources, flows and senders
-    for (int index = 0; 0 <= nmos::fields::events_port(model.settings) && index < how_many; ++index)
-    {
-        for (const auto& port : ws_sender_ports)
-        {
-            const auto source_id = impl::make_id(seed_id, nmos::types::source, port, index);
-            const auto flow_id = impl::make_id(seed_id, nmos::types::flow, port, index);
-            const auto sender_id = impl::make_id(seed_id, nmos::types::sender, port, index);
+    // AMWA Workshop example code
 
-            nmos::event_type event_type;
-            web::json::value events_type;
-            web::json::value events_state;
-            if (impl::ports::temperature == port)
-            {
-                event_type = impl::temperature_Celsius;
-
-                // see https://specs.amwa.tv/is-07/releases/v1.0.1/docs/3.0._Event_types.html#231-measurements
-                // and https://specs.amwa.tv/is-07/releases/v1.0.1/examples/eventsapi-type-number-measurement-get-200.html
-                // and https://specs.amwa.tv/is-07/releases/v1.0.1/examples/eventsapi-state-number-measurement-get-200.html
-                events_type = nmos::make_events_number_type({ -200, 10 }, { 1000, 10 }, { 1, 10 }, U("C"));
-                events_state = nmos::make_events_number_state({ source_id, flow_id }, { 201, 10 }, event_type);
-            }
-            else if (impl::ports::burn == port)
-            {
-                event_type = nmos::event_types::boolean;
-
-                // see https://specs.amwa.tv/is-07/releases/v1.0.1/docs/3.0._Event_types.html#21-boolean
-                events_type = nmos::make_events_boolean_type();
-                events_state = nmos::make_events_boolean_state({ source_id, flow_id }, false);
-            }
-            else if (impl::ports::nonsense == port)
-            {
-                event_type = nmos::event_types::string;
-
-                // see https://specs.amwa.tv/is-07/releases/v1.0.1/docs/3.0._Event_types.html#22-string
-                // and of course, https://en.wikipedia.org/wiki/Metasyntactic_variable
-                events_type = nmos::make_events_string_type(0, 0, U("^foo|bar|baz|qu+x$"));
-                events_state = nmos::make_events_string_state({ source_id, flow_id }, U("foo"));
-            }
-            else if (impl::ports::catcall == port)
-            {
-                event_type = impl::catcall;
-
-                // see https://specs.amwa.tv/is-07/releases/v1.0.1/docs/3.0._Event_types.html#3-enum
-                events_type = nmos::make_events_number_enum_type({
-                    { 1, { U("meow"), U("chatty") } },
-                    { 2, { U("purr"), U("happy") } },
-                    { 4, { U("hiss"), U("afraid") } },
-                    { 8, { U("yowl"), U("sonorous") } }
-                });
-                events_state = nmos::make_events_number_state({ source_id, flow_id }, 1, event_type);
-            }
-
-            // grain_rate is not set because these events are aperiodic
-            auto source = nmos::make_data_source(source_id, device_id, {}, event_type, model.settings);
-            impl::set_label_description(source, port, index);
-
-            auto events_source = nmos::make_events_source(source_id, events_state, events_type);
-
-            auto flow = nmos::make_json_data_flow(flow_id, source_id, device_id, event_type, model.settings);
-            impl::set_label_description(flow, port, index);
-
-            auto sender = nmos::make_sender(sender_id, flow_id, nmos::transports::websocket, device_id, {}, { host_interface.name }, model.settings);
-            impl::set_label_description(sender, port, index);
-            impl::insert_group_hint(sender, port, index);
-
-            // initialize this sender enabled, just to enable the IS-07-02 test suite to run immediately
-            auto connection_sender = nmos::make_connection_events_websocket_sender(sender_id, device_id, source_id, model.settings);
-            connection_sender.data[nmos::fields::endpoint_active][nmos::fields::master_enable] = connection_sender.data[nmos::fields::endpoint_staged][nmos::fields::master_enable] = value::boolean(true);
-            resolve_auto(sender, connection_sender, connection_sender.data[nmos::fields::endpoint_active][nmos::fields::transport_params]);
-            nmos::set_resource_subscription(sender, nmos::fields::master_enable(connection_sender.data[nmos::fields::endpoint_active]), {}, nmos::tai_now());
-
-            if (!insert_resource_after(delay_millis, model.node_resources, std::move(source), gate)) throw node_implementation_init_exception();
-            if (!insert_resource_after(delay_millis, model.node_resources, std::move(flow), gate)) throw node_implementation_init_exception();
-            if (!insert_resource_after(delay_millis, model.node_resources, std::move(sender), gate)) throw node_implementation_init_exception();
-            if (!insert_resource_after(delay_millis, model.connection_resources, std::move(connection_sender), gate)) throw node_implementation_init_exception();
-            if (!insert_resource_after(delay_millis, model.events_resources, std::move(events_source), gate)) throw node_implementation_init_exception();
-        }
-    }
-
-    // example event receivers
-    for (int index = 0; index < how_many; ++index)
-    {
-        for (const auto& port : ws_receiver_ports)
-        {
-            const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, port, index);
-
-            nmos::event_type event_type;
-            if (impl::ports::temperature == port)
-            {
-                // accept e.g. "number/temperature/F" or "number/temperature/K" as well as "number/temperature/C"
-                event_type = impl::temperature_wildcard;
-            }
-            else if (impl::ports::burn == port)
-            {
-                // accept any boolean
-                event_type = nmos::event_types::wildcard(nmos::event_types::boolean);
-            }
-            else if (impl::ports::nonsense == port)
-            {
-                // accept any string
-                event_type = nmos::event_types::wildcard(nmos::event_types::string);
-            }
-            else if (impl::ports::catcall == port)
-            {
-                // accept only a catcall
-                event_type = impl::catcall;
-            }
-
-            auto receiver = nmos::make_data_receiver(receiver_id, device_id, nmos::transports::websocket, { host_interface.name }, nmos::media_types::application_json, { event_type }, model.settings);
-            impl::set_label_description(receiver, port, index);
-            impl::insert_group_hint(receiver, port, index);
-
-            auto connection_receiver = nmos::make_connection_events_websocket_receiver(receiver_id, model.settings);
-            resolve_auto(receiver, connection_receiver, connection_receiver.data[nmos::fields::endpoint_active][nmos::fields::transport_params]);
-
-            if (!insert_resource_after(delay_millis, model.node_resources, std::move(receiver), gate)) throw node_implementation_init_exception();
-            if (!insert_resource_after(delay_millis, model.connection_resources, std::move(connection_receiver), gate)) throw node_implementation_init_exception();
-        }
-    }
-
-    // example channelmapping resources demonstrating a range of input/output capabilities
-    // see https://github.com/sony/nmos-cpp/issues/111#issuecomment-740613137
-
-    // example audio inputs
-    const bool channelmapping_receivers = 0 <= nmos::fields::channelmapping_port(model.settings) && rtp_receiver_ports.end() != boost::range::find(rtp_receiver_ports, impl::ports::audio);
-    for (int index = 0; channelmapping_receivers && index < how_many; ++index)
-    {
-        const auto stri = utility::conversions::details::to_string_t(index);
-
-        const auto id = U("input") + stri;
-
-        const auto name = U("IP Input ") + stri;
-        const auto description = U("SMPTE 2110-30 IP Input ") + stri;
-
-        const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, impl::ports::audio, index);
-        const auto parent = std::pair<nmos::id, nmos::type>(receiver_id, nmos::types::receiver);
-
-        const auto channel_labels = boost::copy_range<std::vector<utility::string_t>>(boost::irange(0, channel_count) | boost::adaptors::transformed([&](const int& index)
-        {
-            return impl::channels_repeat[index % (int)impl::channels_repeat.size()].label;
-        }));
-
-        // use default input capabilities to indicate no constraints
-        auto channelmapping_input = nmos::make_channelmapping_input(id, name, description, parent, channel_labels);
-        if (!insert_resource_after(delay_millis, model.channelmapping_resources, std::move(channelmapping_input), gate)) throw node_implementation_init_exception();
-    }
-
-    // example audio outputs
-    const bool channelmapping_senders = 0 <= nmos::fields::channelmapping_port(model.settings) && rtp_sender_ports.end() != boost::range::find(rtp_sender_ports, impl::ports::audio);
-    for (int index = 0; channelmapping_senders && index < how_many; ++index)
-    {
-        const auto stri = utility::conversions::details::to_string_t(index);
-
-        const auto id = U("output") + stri;
-
-        const auto name = U("IP Output ") + stri;
-        const auto description = U("SMPTE 2110-30 IP Output ") + stri;
-
-        const auto source_id = impl::make_id(seed_id, nmos::types::source, impl::ports::audio, index);
-
-        const auto channel_labels = boost::copy_range<std::vector<utility::string_t>>(boost::irange(0, channel_count) | boost::adaptors::transformed([&](const int& index)
-        {
-            return impl::channels_repeat[index % (int)impl::channels_repeat.size()].label;
-        }));
-
-        // omit routable inputs to indicate no restrictions
-        auto channelmapping_output = nmos::make_channelmapping_output(id, name, description, source_id, channel_labels);
-        if (!insert_resource_after(delay_millis, model.channelmapping_resources, std::move(channelmapping_output), gate)) throw node_implementation_init_exception();
-    }
-
-    const int input_block_size = 8;
-    const int input_block_count = 8;
-
-    // example non-IP audio input
-    if (0 <= nmos::fields::channelmapping_port(model.settings))
-    {
-        const auto id = U("inputA");
-
-        const auto name = U("MADI Input A");
-        const auto description = U("MADI Input A");
-
-        // non-IP audio inputs have no parent
-        const auto parent = std::pair<nmos::id, nmos::type>();
-
-        const auto channel_labels = boost::copy_range<std::vector<utility::string_t>>(boost::irange(0, input_block_size * input_block_count) | boost::adaptors::transformed([](const int& index)
-        {
-            return nmos::channel_symbols::Undefined(1 + index).name;
-        }));
-
-        // some example constraints; this input's channels can only be used in blocks and the channels cannot be reordered within each block
-        const auto reordering = false;
-        const auto block_size = input_block_size;
-
-        auto channelmapping_input = nmos::make_channelmapping_input(id, name, description, parent, channel_labels, reordering, block_size);
-        if (!insert_resource_after(delay_millis, model.channelmapping_resources, std::move(channelmapping_input), gate)) throw node_implementation_init_exception();
-    }
-
-    // example outputs to some audio gizmo
-    if (0 <= nmos::fields::channelmapping_port(model.settings))
-    {
-        const auto id = U("outputX");
-
-        const auto name = U("Gizmo Output X");
-        const auto description = U("Gizmo Output X");
-
-        const auto source_id = impl::make_id(seed_id, nmos::types::source, impl::ports::audio, how_many);
-
-        const auto channel_labels = boost::copy_range<std::vector<utility::string_t>>(boost::irange(0, input_block_size) | boost::adaptors::transformed([](const int& index)
-        {
-            return nmos::channel_symbols::Undefined(1 + index).name;
-        }));
-
-        // some example constraints; only allow inputs from the example non-IP audio input
-        auto routable_inputs = std::vector<nmos::channelmapping_id>{ U("inputA") };
-        // do not allow unrouted channels
-
-        // start with a valid active map
-        auto active_map = boost::copy_range<std::vector<std::pair<nmos::channelmapping_id, uint32_t>>>(boost::irange(0, input_block_size) | boost::adaptors::transformed([](const int& index)
-        {
-            return std::pair<nmos::channelmapping_id, uint32_t>{ U("inputA"), index };
-        }));
-
-        auto channelmapping_output = nmos::make_channelmapping_output(id, name, description, source_id, channel_labels, routable_inputs, active_map);
-        if (!insert_resource_after(delay_millis, model.channelmapping_resources, std::move(channelmapping_output), gate)) throw node_implementation_init_exception();
-    }
-
-    // example source for some audio gizmo
-    if (0 <= nmos::fields::channelmapping_port(model.settings))
-    {
-        const auto source_id = impl::make_id(seed_id, nmos::types::source, impl::ports::audio, how_many);
-
-        const auto channels = boost::copy_range<std::vector<nmos::channel>>(boost::irange(0, input_block_size) | boost::adaptors::transformed([](const int& index)
-        {
-            return nmos::channel{ {}, nmos::channel_symbols::Undefined(1 + index) };
-        }));
-
-        auto source = nmos::make_audio_source(source_id, device_id, nmos::clock_names::clk0, frame_rate, channels, model.settings);
-        impl::set_label_description(source, impl::ports::audio, how_many);
-
-        if (!insert_resource_after(delay_millis, model.node_resources, std::move(source), gate)) throw node_implementation_init_exception();
-    }
-
-    // example inputs from some audio gizmo
-    if (0 <= nmos::fields::channelmapping_port(model.settings))
-    {
-        const auto id = U("inputX");
-
-        const auto name = U("Gizmo Input X");
-        const auto description = U("Gizmo Input X");
-
-        // the audio gizmo is re-entrant
-        const auto source_id = impl::make_id(seed_id, nmos::types::source, impl::ports::audio, how_many);
-        const auto parent = std::pair<nmos::id, nmos::type>(source_id, nmos::types::source);
-
-        const auto channel_labels = boost::copy_range<std::vector<utility::string_t>>(boost::irange(0, input_block_size) | boost::adaptors::transformed([](const int& index)
-        {
-            return nmos::channel_symbols::Undefined(1 + index).name;
-        }));
-
-        // this input is weird, it is block-based but allows reordering of channels within a block
-        const auto reordering = true;
-        const auto block_size = 2;
-
-        auto channelmapping_input = nmos::make_channelmapping_input(id, name, description, parent, channel_labels, reordering, block_size);
-        if (!insert_resource_after(delay_millis, model.channelmapping_resources, std::move(channelmapping_input), gate)) throw node_implementation_init_exception();
-    }
-
-    // example non-ST 2110-30 audio output
-    if (0 <= nmos::fields::channelmapping_port(model.settings))
-    {
-        const auto id = U("outputB");
-
-        const auto name = U("AES Output B");
-        const auto description = U("AES Output B");
-
-        // non-IP audio outputs have no sourceid
-        const auto source_id = nmos::id();
-
-        const auto channel_labels = boost::copy_range<std::vector<utility::string_t>>(nmos::channel_symbols::ST | boost::adaptors::transformed([](const nmos::channel_symbol& symbol)
-        {
-            return symbol.name;
-        }));
-
-        // allow inputs from the audio gizmo
-        auto routable_inputs = std::vector<nmos::channelmapping_id>{ U("inputX") };
-        // allow unrouted channels
-        routable_inputs.push_back({});
-
-        auto channelmapping_output = nmos::make_channelmapping_output(id, name, description, source_id, channel_labels, routable_inputs);
-        if (!insert_resource_after(delay_millis, model.channelmapping_resources, std::move(channelmapping_output), gate)) throw node_implementation_init_exception();
-    }
-
-    // examples of using IS-12 control protocol
-    // they are based on the NC-DEVICE-MOCK
-    // See https://specs.amwa.tv/nmos-device-control-mock/#about-nc-device-mock
-    // See https://github.com/AMWA-TV/nmos-device-control-mock/blob/main/code/src/NCModel/Features.ts
     if (0 <= nmos::fields::control_protocol_ws_port(model.settings))
     {
-        // example to create a non-standard Gain control class
-        const auto gain_control_class_id = nmos::nc::make_class_id(nmos::nc_worker_class_id, 0, { 1 });
-        const web::json::field_as_number gain_value{ U("gainValue") };
-        {
-            // Gain control class property descriptors
-            std::vector<web::json::value> gain_control_property_descriptors = { nmos::experimental::make_control_class_property_descriptor(U("Gain value"), { 3, 1 }, gain_value, U("NcFloat32")) };
-
-            // create Gain control class descriptor
-            auto gain_control_class_descriptor = nmos::experimental::make_control_class_descriptor(U("Gain control class descriptor"), gain_control_class_id, U("GainControl"), gain_control_property_descriptors);
-
-            // insert Gain control class descriptor to global state, which will be used by the control_protocol_ws_message_handler to process incoming ws message
-            control_protocol_state.insert(gain_control_class_descriptor);
-        }
-        // helper function to create Gain control instance
-        auto make_gain_control = [&gain_value, &gain_control_class_id](nmos::nc_oid oid, nmos::nc_oid owner, const utility::string_t& role, const utility::string_t& user_label, const utility::string_t& description, const web::json::value& touchpoints, const web::json::value& runtime_property_constraints, float gain)
-        {
-            auto data = nmos::nc::details::make_worker(gain_control_class_id, oid, true, owner, role, value::string(user_label), description, touchpoints, runtime_property_constraints, true);
-            data[gain_value] = value::number(gain);
-
-            return nmos::control_protocol_resource{ nmos::is12_versions::v1_0, nmos::types::nc_worker, std::move(data), true };
-        };
-
-        // example to create a non-standard Example control class
-        const auto example_control_class_id = nmos::nc::make_class_id(nmos::nc_worker_class_id, 0, { 2 });
-        const web::json::field_as_number enum_property{ U("enumProperty") };
-        const web::json::field_as_string string_property{ U("stringProperty") };
-        const web::json::field_as_number number_property{ U("numberProperty") };
-        const web::json::field_as_number deprecated_number_property{ U("deprecatedNumberProperty") };
-        const web::json::field_as_bool boolean_property{ U("booleanProperty") };
-        const web::json::field_as_value object_property{ U("objectProperty") };
-        const web::json::field_as_number method_no_args_count{ U("methodNoArgsCount") };
-        const web::json::field_as_number method_simple_args_count{ U("methodSimpleArgsCount") };
-        const web::json::field_as_number method_object_arg_count{ U("methodObjectArgCount") };
-        const web::json::field_as_array string_sequence{ U("stringSequence") };
-        const web::json::field_as_array boolean_sequence{ U("booleanSequence") };
-        const web::json::field_as_array enum_sequence{ U("enumSequence") };
-        const web::json::field_as_array number_sequence{ U("numberSequence") };
-        const web::json::field_as_array object_sequence{ U("objectSequence") };
-        const web::json::field_as_number enum_arg{ U("enumArg") };
-        const web::json::field_as_string string_arg{ U("stringArg") };
-        const web::json::field_as_number number_arg{ U("numberArg") };
-        const web::json::field_as_bool boolean_arg{ U("booleanArg") };
-        const web::json::field_as_value obj_arg{ U("objArg") };
-        enum example_enum
-        {
-            Undefined = 0,
-            Alpha = 1,
-            Beta = 2,
-            Gamma = 3
-        };
-        {
-            // following constraints are used for the example control class level 0 datatype, level 1 property constraints and the method parameters constraints
-            auto make_string_example_argument_constraints = []() {return nmos::nc::details::make_parameter_constraints_string(10, U("^[a-z]+$")); };
-            auto make_number_example_argument_constraints = []() {return nmos::nc::details::make_parameter_constraints_number(0, 1000, 1); };
-
-            // Example control class property descriptors
-            std::vector<web::json::value> example_control_property_descriptors = {
-                nmos::experimental::make_control_class_property_descriptor(U("Example enum property"), { 3, 1 }, enum_property, U("ExampleEnum")),
-                // create "Example string property" with level 1: property constraints, See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                // use nmos::nc::details::make_parameter_constraints_string to create property constraints
-                nmos::experimental::make_control_class_property_descriptor(U("Example string property"), { 3, 2 }, string_property, U("NcString"), false, false, false, false, make_string_example_argument_constraints()),
-                // create "Example numeric property" with level 1: property constraints, See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                // use nmos::nc::details::make_parameter_constraints_number to create property constraints
-                nmos::experimental::make_control_class_property_descriptor(U("Example numeric property"), { 3, 3 }, number_property, U("NcUint64"), false, false, false, false, make_number_example_argument_constraints()),
-                nmos::experimental::make_control_class_property_descriptor(U("Example deprecated numeric property"), { 3, 4 }, deprecated_number_property, U("NcUint64"), false, false, false, true, make_number_example_argument_constraints()),
-                nmos::experimental::make_control_class_property_descriptor(U("Example boolean property"), { 3, 5 }, boolean_property, U("NcBoolean")),
-                nmos::experimental::make_control_class_property_descriptor(U("Example object property"), { 3, 6 }, object_property, U("ExampleDataType")),
-                nmos::experimental::make_control_class_property_descriptor(U("Example method no args invoke counter"), { 3, 7 }, method_no_args_count, U("NcUint64"), true),
-                nmos::experimental::make_control_class_property_descriptor(U("Example method simple args invoke counter"), { 3, 8 }, method_simple_args_count, U("NcUint64"), true),
-                nmos::experimental::make_control_class_property_descriptor(U("Example method obj arg invoke counter"), { 3, 9 }, method_object_arg_count, U("NcUint64"), true),
-                // create "Example sequence string property" with level 1: property constraints, See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                // use nmos::nc::details::make_parameter_constraints_string to create sequence property constraints
-                nmos::experimental::make_control_class_property_descriptor(U("Example string sequence property"), { 3, 10 }, string_sequence, U("NcString"), false, false, true, false, make_string_example_argument_constraints()),
-                nmos::experimental::make_control_class_property_descriptor(U("Example boolean sequence property"), { 3, 11 }, boolean_sequence, U("NcBoolean"), false, false, true),
-                nmos::experimental::make_control_class_property_descriptor(U("Example enum sequence property"), { 3, 12 }, enum_sequence, U("ExampleEnum"), false, false, true),
-                // create "Example sequence numeric property" with level 1: property constraints, See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                // use nmos::nc::details::make_parameter_constraints_number to create sequence property constraints
-                nmos::experimental::make_control_class_property_descriptor(U("Example number sequence property"), { 3, 13 }, number_sequence, U("NcUint64"), false, false, true, false, make_number_example_argument_constraints()),
-                nmos::experimental::make_control_class_property_descriptor(U("Example object sequence property"), { 3, 14 }, object_sequence, U("ExampleDataType"), false, false, true)
-            };
-
-            auto example_method_with_no_args = [](nmos::resources& resources, const nmos::resource& resource, const web::json::value& arguments, bool is_deprecated, slog::base_gate& gate)
-            {
-                // note, model mutex is already locked by the outer function, so access to control_protocol_resources is OK...
-
-                slog::log<slog::severities::more_info>(gate, SLOG_FLF) << "Executing the example method with no arguments";
-
-                return nmos::nc::details::make_method_result({ is_deprecated ? nmos::nc_method_status::method_deprecated : nmos::nc_method_status::ok });
-            };
-            auto example_method_with_simple_args = [](nmos::resources& resources, const nmos::resource& resource, const web::json::value& arguments, bool is_deprecated, slog::base_gate& gate)
-            {
-                // note, model mutex is already locked by the outer function, so access to control_protocol_resources is OK...
-                // and the method parameters constraints have already been validated by the outer function
-
-                slog::log<slog::severities::more_info>(gate, SLOG_FLF) << "Executing the example method with simple arguments: " << arguments.serialize();
-
-                return nmos::nc::details::make_method_result({ is_deprecated ? nmos::nc_method_status::method_deprecated : nmos::nc_method_status::ok });
-            };
-            auto example_method_with_object_args = [](nmos::resources& resources, const nmos::resource& resource, const web::json::value& arguments, bool is_deprecated, slog::base_gate& gate)
-            {
-                // note, model mutex is already locked by the outer function, so access to control_protocol_resources is OK...
-                // and the method parameters constraints have already been validated by the outer function
-
-                slog::log<slog::severities::more_info>(gate, SLOG_FLF) << "Executing the example method with object argument: " << arguments.serialize();
-
-                return nmos::nc::details::make_method_result({ is_deprecated ? nmos::nc_method_status::method_deprecated : nmos::nc_method_status::ok });
-            };
-            // Example control class method descriptors
-            std::vector<nmos::experimental::method> example_control_method_descriptors =
-            {
-                { nmos::experimental::make_control_class_method_descriptor(U("Example method with no arguments"), { 3, 1 }, U("MethodNoArgs"), U("NcMethodResult"), {}, false, example_method_with_no_args) },
-                { nmos::experimental::make_control_class_method_descriptor(U("Example deprecated method with no arguments"), { 3, 2 }, U("MethodNoArgs"), U("NcMethodResult"), {}, true, example_method_with_no_args) },
-                { nmos::experimental::make_control_class_method_descriptor(U("Example method with simple arguments"), { 3, 3 }, U("MethodSimpleArgs"), U("NcMethodResult"),
-                     {
-                        nmos::experimental::make_control_class_method_parameter_descriptor(U("Enum example argument"), enum_arg, U("ExampleEnum")),
-                        nmos::experimental::make_control_class_method_parameter_descriptor(U("String example argument"), string_arg, U("NcString"), false, false, make_string_example_argument_constraints()), // e.g. include method property constraints
-                        nmos::experimental::make_control_class_method_parameter_descriptor(U("Number example argument"), number_arg, U("NcUint64"), false, false, make_number_example_argument_constraints()), // e.g. include method property constraints
-                        nmos::experimental::make_control_class_method_parameter_descriptor(U("Boolean example argument"), boolean_arg, U("NcBoolean"))
-                    },
-                    false, example_method_with_simple_args)
-                },
-                { nmos::experimental::make_control_class_method_descriptor(U("Example method with object argument"), { 3, 4 }, U("MethodObjectArg"), U("NcMethodResult"),
-                    {
-                        nmos::experimental::make_control_class_method_parameter_descriptor(U("Object example argument"), obj_arg, U("ExampleDataType"))
-                    },
-                    false, example_method_with_object_args)
-                }
-            };
-
-            // create Example control class descriptor
-            auto example_control_class_descriptor = nmos::experimental::make_control_class_descriptor(U("Example control class descriptor"), example_control_class_id, U("ExampleControl"), example_control_property_descriptors, example_control_method_descriptors);
-
-            // insert Example control class descriptor to global state, which will be used by the control_protocol_ws_message_handler to process incoming ws message
-            control_protocol_state.insert(example_control_class_descriptor);
-
-            // create/insert Example datatypes to global state, which will be used by the control_protocol_ws_message_handler to process incoming ws message
-            auto make_example_enum_datatype = [&]()
-            {
-                using web::json::value;
-
-                auto items = value::array();
-                web::json::push_back(items, nmos::nc::details::make_enum_item_descriptor(U("Undefined"), U("Undefined"), example_enum::Undefined));
-                web::json::push_back(items, nmos::nc::details::make_enum_item_descriptor(U("Alpha"), U("Alpha"), example_enum::Alpha));
-                web::json::push_back(items, nmos::nc::details::make_enum_item_descriptor(U("Beta"), U("Beta"), example_enum::Beta));
-                web::json::push_back(items, nmos::nc::details::make_enum_item_descriptor(U("Gamma"), U("Gamma"), example_enum::Gamma));
-                return nmos::nc::details::make_datatype_descriptor_enum(U("Example enum datatype"), U("ExampleEnum"), items, value::null());
-            };
-            auto make_example_datatype_datatype = [&]()
-            {
-                using web::json::value;
-
-                auto fields = value::array();
-                web::json::push_back(fields, nmos::nc::details::make_field_descriptor(U("Enum property example"), enum_property, U("ExampleEnum"), false, false, value::null()));
-                {
-                    // level 0: datatype constraints, See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                    // use nmos::nc::details::make_parameter_constraints_string to create datatype constraints
-                    value datatype_constraints = make_string_example_argument_constraints();
-                    web::json::push_back(fields, nmos::nc::details::make_field_descriptor(U("String property example"), string_property, U("NcString"), false, false, datatype_constraints));
-                }
-                {
-                    // level 0: datatype constraints, See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                    // use nmos::nc::details::make_parameter_constraints_number to create datatype constraints
-                    value datatype_constraints = make_number_example_argument_constraints();
-                    web::json::push_back(fields, nmos::nc::details::make_field_descriptor(U("Number property example"), number_property, U("NcUint64"), false, false, datatype_constraints));
-                }
-                web::json::push_back(fields, nmos::nc::details::make_field_descriptor(U("Boolean property example"), boolean_property, U("NcBoolean"), false, false, value::null()));
-                return nmos::nc::details::make_datatype_descriptor_struct(U("Example data type"), U("ExampleDataType"), fields, value::null());
-            };
-            control_protocol_state.insert(nmos::experimental::datatype_descriptor{ make_example_enum_datatype() });
-            control_protocol_state.insert(nmos::experimental::datatype_descriptor{ make_example_datatype_datatype() });
-        }
-        // helper function to create Example datatype
-        auto make_example_datatype = [&](example_enum enum_property_, const utility::string_t& string_property_, uint64_t number_property_, bool boolean_property_)
-        {
-            using web::json::value_of;
-
-            return value_of({
-                { enum_property, enum_property_ },
-                { string_property, string_property_ },
-                { number_property, number_property_ },
-                { boolean_property, boolean_property_ }
-            });
-        };
-        // helper function to create Example control instance
-        auto make_example_control = [&](nmos::nc_oid oid, nmos::nc_oid owner, const utility::string_t& role, const utility::string_t& user_label, const utility::string_t& description, const value& touchpoints,
-            const value& runtime_property_constraints,  // level 2: runtime constraints. See https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-                                                        // use of make_property_constraints_string and make_property_constraints_number to create runtime constraints
-            example_enum enum_property_,
-            const utility::string_t& string_property_,
-            uint64_t number_property_,
-            uint64_t deprecated_number_property_,
-            bool boolean_property_,
-            const value& object_property_,
-            uint64_t method_no_args_count_,
-            uint64_t method_simple_args_count_,
-            uint64_t method_object_arg_count_,
-            std::vector<utility::string_t> string_sequence_,
-            std::vector<bool> boolean_sequence_,
-            std::vector<example_enum> enum_sequence_,
-            std::vector<uint64_t> number_sequence_,
-            std::vector<value> object_sequence_)
-        {
-            auto data = nmos::nc::details::make_worker(example_control_class_id, oid, true, owner, role, value::string(user_label), description, touchpoints, runtime_property_constraints, true);
-            data[enum_property] = value::number(enum_property_);
-            data[string_property] = value::string(string_property_);
-            data[number_property] = value::number(number_property_);
-            data[deprecated_number_property] = value::number(deprecated_number_property_);
-            data[boolean_property] = value::boolean(boolean_property_);
-            data[object_property] = object_property_;
-            data[method_no_args_count] = value::number(method_no_args_count_);
-            data[method_simple_args_count] = value::number(method_simple_args_count_);
-            data[method_object_arg_count] = value::number(method_object_arg_count_);
-            {
-                value sequence;
-                for (const auto& value_ : string_sequence_) { web::json::push_back(sequence, value::string(value_)); }
-                data[string_sequence] = sequence;
-            }
-            {
-                value sequence;
-                for (const auto& value_ : boolean_sequence_) { web::json::push_back(sequence, value::boolean(value_)); }
-                data[boolean_sequence] = sequence;
-            }
-            {
-                value sequence;
-                for (const auto& value_ : enum_sequence_) { web::json::push_back(sequence, value_); }
-                data[enum_sequence] = sequence;
-            }
-            {
-                value sequence;
-                for (const auto& value_ : number_sequence_) { web::json::push_back(sequence, value_); }
-                data[number_sequence] = sequence;
-            }
-            {
-                value sequence;
-                for (const auto& value_ : object_sequence_) { web::json::push_back(sequence, value_); }
-                data[object_sequence] = sequence;
-            }
-
-            return nmos::control_protocol_resource{ nmos::is12_versions::v1_0, nmos::types::nc_worker, std::move(data), true };
-        };
-
-        // example to create a non-standard Temperature Sensor control class
-        const auto temperature_sensor_control_class_id = nmos::nc::make_class_id(nmos::nc_worker_class_id, 0, { 3 }); // hmm, maybe pull in out to impl namespace
-        const web::json::field_as_number temperature{ U("temperature") }; // hmm, maybe pull in out to impl namespace
-        const web::json::field_as_string unit{ U("uint") }; // hmm, maybe pull in out to impl namespace
-        {
-            // Temperature Sensor control class property descriptors
-            std::vector<web::json::value> temperature_sensor_property_descriptors = {
-                nmos::experimental::make_control_class_property_descriptor(U("Temperature"), { 3, 1 }, temperature, U("NcFloat32"), true), // hmm, maybe pull in out to impl namespace
-                nmos::experimental::make_control_class_property_descriptor(U("Unit"), { 3, 2 }, unit, U("NcString"), true)
-            };
-
-            // create Temperature Sensor control class descriptor
-            auto temperature_sensor_control_class_descriptor = nmos::experimental::make_control_class_descriptor(U("Temperature Sensor control class descriptor"), temperature_sensor_control_class_id, U("TemperatureSensor"), temperature_sensor_property_descriptors);
-
-            // insert Temperature Sensor control class descriptor to global state, which will be used by the control_protocol_ws_message_handler to process incoming ws message
-            control_protocol_state.insert(temperature_sensor_control_class_descriptor);
-        }
-        // helper function to create Temperature Sensor control instance
-        auto make_temperature_sensor = [&temperature, &unit, temperature_sensor_control_class_id](nmos::nc_oid oid, nmos::nc_oid owner, const utility::string_t& role, const utility::string_t& user_label, const utility::string_t& description, const web::json::value& touchpoints, const web::json::value& runtime_property_constraints, float temperature_, const utility::string_t& unit_)
-        {
-            auto data = nmos::nc::details::make_worker(temperature_sensor_control_class_id, oid, true, owner, role, value::string(user_label), description, touchpoints, runtime_property_constraints, true);
-            data[temperature] = value::number(temperature_);
-            data[unit] = value::string(unit_);
-
-            return nmos::control_protocol_resource{ nmos::is12_versions::v1_0, nmos::types::nc_worker, std::move(data), true };
-        };
-
-        // example root block
         auto root_block = nmos::make_root_block();
 
         nmos::nc_oid oid = nmos::root_block_oid;
 
-        // example device manager
         auto device_manager = nmos::make_device_manager(++oid, model.settings);
 
-        // example class manager
         auto class_manager = nmos::make_class_manager(++oid, control_protocol_state);
 
-        // example bulk properties manager
-        auto bulk_properties_manager = nmos::make_bulk_properties_manager(++oid);
+        // 1. make Receivers block for Receiver Monitors
 
-        // example stereo gain
-        const auto stereo_gain_oid = ++oid;
-        auto stereo_gain = nmos::make_block(stereo_gain_oid, nmos::root_block_oid, U("stereo-gain"), U("Stereo gain"), U("Stereo gain block"));
+        // 2. make Receiver Monitors for each NMOS Receiver resource
 
-        // example channel gain
-        const auto channel_gain_oid = ++oid;
-        auto channel_gain = nmos::make_block(channel_gain_oid, stereo_gain_oid, U("channel-gain"), U("Channel gain"), U("Channel gain block"));
-        // example left/right gains
-        auto left_gain = make_gain_control(++oid, channel_gain_oid, U("left-gain"), U("Left gain"), U("Left channel gain"), value::null(), value::null(), 0.0);
-        auto right_gain = make_gain_control(++oid, channel_gain_oid, U("right-gain"), U("Right gain"), U("Right channel gain"), value::null(), value::null(), 0.0);
+        // 3. add Receiver Monitors to Receivers block
 
-        // add left-gain and right-gain to channel gain
-        nmos::nc::push_back(channel_gain, left_gain);
-        nmos::nc::push_back(channel_gain, right_gain);
+        // 4. add Receivers block to the Root block
 
-        // example master-gain
-        auto master_gain = make_gain_control(++oid, stereo_gain_oid, U("master-gain"), U("Master gain"), U("Master gain block"), value::null(), value::null(), 0.0);
-        // add channel-gain and master-gain to stereo-gain
-        nmos::nc::push_back(stereo_gain, channel_gain);
-        nmos::nc::push_back(stereo_gain, master_gain);
-
-        // example example-control
-        auto example_control = make_example_control(++oid, nmos::root_block_oid, U("ExampleControl"), U("Example control worker"), U("Example control worker"),
-            value::null(),
-            // specify the level 2: runtime constraints, see https://specs.amwa.tv/ms-05-02/branches/v1.0.x/docs/Constraints.html
-            // use of make_property_constraints_string and make_property_constraints_number to create runtime constraints
-            value_of({
-                { nmos::nc::details::make_property_constraints_string({3, 2}, 5, U("^[a-z]+$")) },
-                { nmos::nc::details::make_property_constraints_number({3, 3}, 10, 100, 2) }
-            }),
-            example_enum::Undefined,
-            U("test"),
-            30,
-            10,
-            false,
-            make_example_datatype(example_enum::Undefined, U("default"), 5, false),
-            0,
-            0,
-            0,
-            { U("red"), U("blue"), U("green") },
-            { true, false },
-            { example_enum::Alpha, example_enum::Gamma },
-            { 0, 50, 80 },
-            { make_example_datatype(example_enum::Alpha, U("example"), 50, false), make_example_datatype(example_enum::Gamma, U("different"), 75, true) }
-        );
-
-        // making an object rebuildable allows read only properties to be modified by the Configuration API in Rebuild mode
-        nmos::make_rebuildable(example_control);
-
-        const auto receivers_block_oid = ++oid;
-        auto receivers_block = nmos::make_block(receivers_block_oid, nmos::root_block_oid, U("receivers"), U("Receiver Monitors"), U("Receiver Monitors"));
-        // making a block rebuildable allows block members to be added or removed by the Configuration API in Rebuild mode
-        nmos::make_rebuildable(receivers_block);
-        // restrict the allowed classes for members of this block
-        nmos::set_block_allowed_member_classes(receivers_block, {nmos::nc_receiver_monitor_class_id});
-
-        // example receiver-monitor(s)
-        {
-            int count = 0;
-            for (int index = 0; index < how_many; ++index)
-            {
-                for (const auto& port : rtp_receiver_ports)
-                {
-                    const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, port, index);
-
-                    utility::ostringstream_t role;
-                    role << U("receiver-monitor-") << ++count;
-                    const auto& receiver = nmos::find_resource(model.node_resources, receiver_id);
-                    auto receiver_monitor = nmos::make_receiver_monitor(++oid, true, receivers_block_oid, role.str(), nmos::fields::label(receiver->data), nmos::fields::description(receiver->data), value_of({ { nmos::nc::details::make_touchpoint_nmos({nmos::ncp_touchpoint_resource_types::receiver, receiver_id}) } }));
-                    // optionally indicate dependencies within the device model
-                    nmos::set_object_dependency_paths(receiver_monitor, {{U("root"), U("receivers")}});
-                    // add receiver-monitor to receivers-block
-                    nmos::nc::push_back(receivers_block, receiver_monitor);
-                }
-            }
-        }
-
-        // example sender-monitor(s)
-        {
-            int count = 0;
-            for (int index = 0; index < how_many; ++index)
-            {
-                for (const auto& port : rtp_sender_ports)
-                {
-                    const auto sender_id = impl::make_id(seed_id, nmos::types::sender, port, index);
-
-                    utility::ostringstream_t role;
-                    role << U("sender-monitor-") << ++count;
-                    const auto& sender = nmos::find_resource(model.node_resources, sender_id);
-                    const auto sender_monitor = nmos::make_sender_monitor(++oid, true, nmos::root_block_oid, role.str(), nmos::fields::label(sender->data), nmos::fields::description(sender->data), value_of({ { nmos::nc::details::make_touchpoint_nmos({nmos::ncp_touchpoint_resource_types::sender, sender_id}) } }));
-
-                    // add sender-monitor to root-block
-                    nmos::nc::push_back(root_block, sender_monitor);
-                }
-            }
-        }
-
-        // example temperature-sensor
-        const auto temperature_sensor = make_temperature_sensor(++oid, nmos::root_block_oid, U("temperature-sensor"), U("Temperature Sensor"), U("Temperature Sensor block"), value::null(), value::null(), 0.0, U("Celsius"));
-
-        // add receivers-block to root-block
-        nmos::nc::push_back(root_block, receivers_block);
-        // add temperature-sensor to root-block
-        nmos::nc::push_back(root_block, temperature_sensor);
-        // add example-control to root-block
-        nmos::nc::push_back(root_block, example_control);
-        // add stereo-gain to root-block
-        nmos::nc::push_back(root_block, stereo_gain);
-        // add class-manager to root-block
         nmos::nc::push_back(root_block, class_manager);
-        // add device-manager to root-block
-        nmos::nc::push_back(root_block, device_manager);
-        // add bulk-properties-manager to root-block
-        nmos::nc::push_back(root_block, bulk_properties_manager);
 
-        // insert control protocol resources to model
+        nmos::nc::push_back(root_block, device_manager);
+
         insert_root_after(delay_millis, root_block, gate);
     }
-
-    // create the list of network interface controller packet counters
-    impl::nic_packet_counters = boost::copy_range<std::vector<impl::nic_packet_counter>>(host_interfaces | boost::adaptors::transformed([](const web::hosts::experimental::host_interface& interface)
-    {
-        return impl::nic_packet_counter{
-            {interface.name, 0, U("total number of lost pockets")},
-            {interface.name, 0, U("total number of late pockets")}
-        };
-    }));
 }
 
 void node_implementation_run(nmos::node_model& model, nmos::experimental::control_protocol_state& control_protocol_state, slog::base_gate& gate)
@@ -1361,14 +680,11 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
 
     const auto seed_id = nmos::experimental::fields::seed_id(model.settings);
     const auto how_many = impl::fields::how_many(model.settings);
-    const auto sender_ports = impl::parse_ports(impl::fields::senders(model.settings));
-    const auto rtp_sender_ports = boost::copy_range<std::vector<impl::port>>(sender_ports | boost::adaptors::filtered(impl::is_rtp_port));
-    const auto ws_sender_ports = boost::copy_range<std::vector<impl::port>>(sender_ports | boost::adaptors::filtered(impl::is_ws_port));
     const auto rtp_receiver_ports = boost::copy_range<std::vector<impl::port>>(impl::parse_ports(impl::fields::receivers(model.settings)) | boost::adaptors::filtered(impl::is_rtp_port));
-    const auto simulate_status_monitor_activity = impl::fields::simulate_status_monitor_activity(model.settings);
 
     auto& control_protocol_resources = model.control_protocol_resources;
 
+    // control protocol handlers are defined in control_protocol_handlers.h
     auto get_control_protocol_property = nmos::make_get_control_protocol_property_handler(control_protocol_resources, control_protocol_state, gate);
     auto set_control_protocol_property = nmos::make_set_control_protocol_property_handler(control_protocol_resources, control_protocol_state, gate);
 
@@ -1384,7 +700,7 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
     auto set_sender_monitor_essence_status = nmos::make_set_sender_monitor_essence_status_handler(control_protocol_resources, control_protocol_state, gate);
     auto set_sender_monitor_synchronization_source_id = nmos::make_set_sender_monitor_synchronization_source_id_handler(control_protocol_resources, control_protocol_state, gate);
 
-    // start background tasks to intermittently update the state of the event sources, to cause events to be emitted to connected receivers
+    // start background tasks to intermittently update the state of the Device Model
 
     nmos::details::seed_generator events_seeder;
     std::shared_ptr<std::default_random_engine> events_engine(new std::default_random_engine(events_seeder));
@@ -1392,219 +708,34 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
     auto cancellation_source = pplx::cancellation_token_source();
 
     auto token = cancellation_source.get_token();
-    auto events = pplx::do_while([&model, seed_id, how_many, simulate_status_monitor_activity, ws_sender_ports, rtp_receiver_ports, rtp_sender_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_control_protocol_property, events_engine, &gate, token]
+    auto events = pplx::do_while([&model, seed_id, how_many, rtp_receiver_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_control_protocol_property, events_engine, &gate, token]
     {
         const auto event_interval = std::uniform_real_distribution<>(0.5, 5.0)(*events_engine);
-        return pplx::complete_after(std::chrono::milliseconds(std::chrono::milliseconds::rep(1000 * event_interval)), token).then([&model, seed_id, how_many, simulate_status_monitor_activity, ws_sender_ports, rtp_receiver_ports, rtp_sender_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_control_protocol_property, events_engine, &gate]
+        return pplx::complete_after(std::chrono::milliseconds(std::chrono::milliseconds::rep(1000 * event_interval)), token).then([&model, seed_id, how_many, rtp_receiver_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_control_protocol_property, events_engine, &gate]
         {
             auto lock = model.write_lock();
-
-            // make example temperature data ... \/\/\/\/ ... around 200
-            const nmos::events_number temp(175.0 + std::abs(nmos::tai_now().seconds % 100 - 50), 10);
-            // i.e. 17.5-22.5 C
-
-            for (int index = 0; 0 <= nmos::fields::events_port(model.settings) && index < how_many; ++index)
+            for (int index = 0; index < how_many; ++index)
             {
-                for (const auto& port : ws_sender_ports)
+                for (const auto& port : rtp_receiver_ports)
                 {
-                    const auto source_id = impl::make_id(seed_id, nmos::types::source, port, index);
-                    const auto flow_id = impl::make_id(seed_id, nmos::types::flow, port, index);
+                    const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, port, index);
 
-                    modify_resource(model.events_resources, source_id, [&](nmos::resource& resource)
+                    auto& resources = model.control_protocol_resources;
+
+                    auto receiver_monitor = nmos::nc::find_resource(resources, nmos::types::nc_status_monitor, receiver_id);
+                    if (resources.end() != receiver_monitor)
                     {
-                        if (impl::ports::temperature == port)
+                        const auto& oid = nmos::fields::nc::oid(receiver_monitor->data);
+
+                        auto overall_status = get_control_protocol_property(oid, nmos::nc_status_monitor_overall_status_property_id);
+                        if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
                         {
-                            nmos::fields::endpoint_state(resource.data) = nmos::make_events_number_state({ source_id, flow_id }, temp, impl::temperature_Celsius);
-                        }
-                        else if (impl::ports::burn == port)
-                        {
-                            nmos::fields::endpoint_state(resource.data) = nmos::make_events_boolean_state({ source_id, flow_id }, temp.scaled_value() > 20.0);
-                        }
-                        else if (impl::ports::nonsense == port)
-                        {
-                            const auto nonsenses = { U("foo"), U("bar"), U("baz"), U("qux"), U("quux"), U("quuux") };
-                            const auto& nonsense = *(nonsenses.begin() + (std::min)(std::geometric_distribution<size_t>()(*events_engine), nonsenses.size() - 1));
-                            nmos::fields::endpoint_state(resource.data) = nmos::make_events_string_state({ source_id, flow_id }, nonsense);
-                        }
-                        else if (impl::ports::catcall == port)
-                        {
-                            const auto catcalls = { 1, 2, 4, 8 };
-                            const auto& catcall = *(catcalls.begin() + (std::min)(std::geometric_distribution<size_t>()(*events_engine), catcalls.size() - 1));
-                            nmos::fields::endpoint_state(resource.data) = nmos::make_events_number_state({ source_id, flow_id }, catcall, impl::catcall);
-                        }
-                    });
-                }
-            }
-
-            // update temperature sensor
-            {
-                const auto temperature_sensor_control_class_id = nmos::nc::make_class_id(nmos::nc_worker_class_id, 0, { 3 }); // hmm, maybe pull out temperature_sensor_control_class_id to impl namespace
-                const auto temperature_value_property_id = nmos::nc_property_id({3, 1});
-
-                auto& resources = model.control_protocol_resources;
-
-                auto found = nmos::find_resource_if(resources, nmos::types::nc_worker, [&temperature_sensor_control_class_id](const nmos::resource& resource)
-                {
-                    return temperature_sensor_control_class_id == nmos::nc::details::parse_class_id(nmos::fields::nc::class_id(resource.data));
-                });
-
-                if (resources.end() != found)
-                {
-                    set_control_protocol_property(nmos::fields::nc::oid(found->data), temperature_value_property_id, web::json::value(temp.scaled_value()));
-                }
-            }
-
-            slog::log<slog::severities::more_info>(gate, SLOG_FLF) << "Temperature updated: " << temp.scaled_value() << " (" << impl::temperature_Celsius.name << ")";
-
-            // example to increment nic packet counters
-            for (auto& counter : impl::nic_packet_counters)
-            {
-                if (counter.lost_packet_counter.value < std::numeric_limits<uint64_t>::max()) ++counter.lost_packet_counter.value;
-                if (counter.late_packet_counter.value < std::numeric_limits<uint64_t>::max()) ++counter.late_packet_counter.value;
-            }
-
-            // example setting receiver monitor statuses
-            if (simulate_status_monitor_activity) {
-                auto& resources = model.control_protocol_resources;
-                for (int index = 0; index < how_many; ++index)
-                {
-                    for (const auto& port : rtp_receiver_ports)
-                    {
-                        const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, port, index);
-
-                        auto receiver_monitor = nmos::nc::find_resource(resources, nmos::types::nc_status_monitor, receiver_id);
-                        if (resources.end() != receiver_monitor)
-                        {
-                            const auto& oid = nmos::fields::nc::oid(receiver_monitor->data);
-
-                            auto overall_status = get_control_protocol_property(oid, nmos::nc_status_monitor_overall_status_property_id);
-
-                            switch (rand() % 3)
-                            {
-                                case 0:
-                                {
-                                    // Change link status
-                                    const auto status = nmos::nc_link_status::status(nmos::nc_link_status::all_up + rand() % 3);
-                                    const auto status_message = status > nmos::nc_link_status::all_up ? U("NIC1, NIC2 are down") : U("");
-                                    set_receiver_monitor_link_status(oid, status, status_message);
-                                    break;
-                                }
-                                case 1:
-                                {
-                                    // Change connection status
-                                    if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
-                                    {
-                                        const auto connection_status = nmos::nc_connection_status::status(nmos::nc_connection_status::healthy + rand() % 3);
-                                        const auto connection_status_message = connection_status > nmos::nc_connection_status::healthy ? U("Packet loss detected") : U("");
-
-                                        set_receiver_monitor_connection_status(oid, connection_status, connection_status_message);
-                                    }
-                                    break;
-                                }
-                                case 2:
-                                {
-                                    // Change synchronization status
-                                    const auto status = nmos::nc_synchronization_status::status(nmos::nc_synchronization_status::not_used + rand() % 4);
-                                    const auto status_message = status > nmos::nc_synchronization_status::healthy ? U("Source change from: 00:0c:ec:ff:fe:0a:2b:a1 on NIC1") : U("");
-                                    set_receiver_monitor_external_synchronization_status(oid, status, status_message);
-                                    // update receiver monitor synchronization source id if in-used
-                                    if (nmos::nc_synchronization_status::not_used != status)
-                                    {
-                                        if (nmos::nc_synchronization_status::healthy == status) set_receiver_monitor_synchronization_source_id(oid, bst::optional<utility::string_t>{ U("internal") });
-                                        else set_receiver_monitor_synchronization_source_id(oid, {});
-                                    }
-                                    break;
-                                }
-                                case 3:
-                                {
-                                    // Change stream status
-                                    if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
-                                    {
-                                        const auto status = nmos::nc_stream_status::status(nmos::nc_stream_status::healthy + rand() % 3);
-                                        const auto status_message = status > nmos::nc_stream_status::status::healthy ? U("Unexpected stream format") : U("");
-
-                                        set_receiver_monitor_stream_status(oid, status, status_message);
-                                    }
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
+                            // 5. add behaviour for the Receiver Monitors in node_implementation_run
                         }
                     }
                 }
             }
-            // example setting sender monitor statuses
-            if (simulate_status_monitor_activity) {
-                auto& resources = model.control_protocol_resources;
-                for (int index = 0; index < how_many; ++index)
-                {
-                    for (const auto& port : rtp_sender_ports)
-                    {
-                        const auto sender_id = impl::make_id(seed_id, nmos::types::sender, port, index);
 
-                        auto sender_monitor = nmos::nc::find_resource(resources, nmos::types::nc_status_monitor, sender_id);
-                        if (resources.end() != sender_monitor)
-                        {
-                            const auto& oid = nmos::fields::nc::oid(sender_monitor->data);
-
-                            auto overall_status = get_control_protocol_property(oid, nmos::nc_status_monitor_overall_status_property_id);
-
-                            switch (rand() % 3)
-                            {
-                                case 0:
-                                {
-                                    // Change link status
-                                    const auto status = nmos::nc_link_status::status(nmos::nc_link_status::all_up + rand() % 3);
-                                    const auto status_message = status > nmos::nc_link_status::all_up ? U("NIC1, NIC2 are down") : U("");
-                                    set_sender_monitor_link_status(oid, status, status_message);
-                                    break;
-                                }
-                                case 1:
-                                {
-                                    // Change transmission status
-                                    if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
-                                    {
-                                        const auto transmission_status = nmos::nc_transmission_status::status(nmos::nc_transmission_status::healthy + rand() % 3);
-                                        const auto transmission_status_message = transmission_status > nmos::nc_transmission_status::healthy ? U("Transmission errors detected") : U("");
-
-                                        set_sender_monitor_transmission_status(oid, transmission_status, transmission_status_message);
-                                    }
-                                    break;
-                                }
-                                case 2:
-                                {
-                                    // Change synchronization status
-                                    const auto status = nmos::nc_synchronization_status::status(nmos::nc_synchronization_status::not_used + rand() % 4);
-                                    const auto status_message = status > nmos::nc_synchronization_status::healthy ? U("Source change from: 00:0c:ec:ff:fe:0a:2b:a1 on NIC1") : U("");
-                                    set_sender_monitor_external_synchronization_status(oid, status, status_message);
-                                    // update sender monitor synchronization source id if in-used
-                                    if (nmos::nc_synchronization_status::not_used != status)
-                                    {
-                                        if (nmos::nc_synchronization_status::healthy == status) set_sender_monitor_synchronization_source_id(oid, bst::optional<utility::string_t>{ U("internal") });
-                                        else set_sender_monitor_synchronization_source_id(oid, {});
-                                    }
-                                    break;
-                                }
-                                case 3:
-                                {
-                                    // Change essence status
-                                    if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
-                                    {
-                                        const auto status = nmos::nc_essence_status::status(nmos::nc_stream_status::healthy + rand() % 3);
-                                        const auto status_message = status > nmos::nc_essence_status::status::healthy ? U("No valid input signal on input SDI1") : U("");
-
-                                        set_sender_monitor_essence_status(oid, status, status_message);
-                                    }
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
             model.notify();
 
             return true;
