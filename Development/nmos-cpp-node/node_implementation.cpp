@@ -223,6 +223,79 @@ namespace impl
     };
     std::vector<nic_packet_counter> nic_packet_counters;
 
+    const auto nv_mxl_receiver_monitor_class_id = nmos::nc::make_class_id(nmos::nc_status_monitor_class_id, 0, { 1 });
+    const auto nv_mxl_sender_monitor_class_id = nmos::nc::make_class_id(nmos::nc_status_monitor_class_id, 0, { 2 });
+
+    const nmos::nc_property_id mxl_domain_status_property_id{ 4, 1 };
+    const nmos::nc_property_id mxl_domain_status_message_property_id{ 4, 2 };
+    const nmos::nc_property_id mxl_domain_status_transition_counter_property_id{ 4, 3 };
+    const nmos::nc_property_id mxl_flow_status_property_id{ 4, 4 };
+    const nmos::nc_property_id mxl_flow_status_message_property_id{ 4, 5 };
+    const nmos::nc_property_id mxl_flow_status_transition_counter_property_id{ 4, 6 };
+    const nmos::nc_property_id mxl_ring_or_publish_status_property_id{ 4, 7 };
+    const nmos::nc_property_id mxl_ring_or_publish_status_message_property_id{ 4, 8 };
+    const nmos::nc_property_id mxl_ring_or_publish_status_transition_counter_property_id{ 4, 9 };
+    const nmos::nc_property_id mxl_grain_status_property_id{ 4, 10 };
+    const nmos::nc_property_id mxl_grain_status_message_property_id{ 4, 11 };
+    const nmos::nc_property_id mxl_grain_status_transition_counter_property_id{ 4, 12 };
+
+    const utility::string_t mxl_domain_status{ U("domainStatus") };
+    const utility::string_t mxl_domain_status_message{ U("domainStatusMessage") };
+    const utility::string_t mxl_domain_status_transition_counter{ U("domainStatusTransitionCounter") };
+    const utility::string_t mxl_domain_status_pending{ U("domainStatusPending") };
+    const utility::string_t mxl_domain_status_message_pending{ U("domainStatusMessagePending") };
+    const utility::string_t mxl_domain_status_pending_received_time{ U("domainStatusPendingReceivedTime") };
+    const utility::string_t mxl_flow_status{ U("flowStatus") };
+    const utility::string_t mxl_flow_status_message{ U("flowStatusMessage") };
+    const utility::string_t mxl_flow_status_transition_counter{ U("flowStatusTransitionCounter") };
+    const utility::string_t mxl_flow_status_pending{ U("flowStatusPending") };
+    const utility::string_t mxl_flow_status_message_pending{ U("flowStatusMessagePending") };
+    const utility::string_t mxl_flow_status_pending_received_time{ U("flowStatusPendingReceivedTime") };
+    const utility::string_t mxl_ring_status{ U("ringStatus") };
+    const utility::string_t mxl_ring_status_message{ U("ringStatusMessage") };
+    const utility::string_t mxl_ring_status_transition_counter{ U("ringStatusTransitionCounter") };
+    const utility::string_t mxl_ring_status_pending{ U("ringStatusPending") };
+    const utility::string_t mxl_ring_status_message_pending{ U("ringStatusMessagePending") };
+    const utility::string_t mxl_ring_status_pending_received_time{ U("ringStatusPendingReceivedTime") };
+    const utility::string_t mxl_publish_status{ U("publishStatus") };
+    const utility::string_t mxl_publish_status_message{ U("publishStatusMessage") };
+    const utility::string_t mxl_publish_status_transition_counter{ U("publishStatusTransitionCounter") };
+    const utility::string_t mxl_publish_status_pending{ U("publishStatusPending") };
+    const utility::string_t mxl_publish_status_message_pending{ U("publishStatusMessagePending") };
+    const utility::string_t mxl_publish_status_pending_received_time{ U("publishStatusPendingReceivedTime") };
+    const utility::string_t mxl_grain_status{ U("grainStatus") };
+    const utility::string_t mxl_grain_status_message{ U("grainStatusMessage") };
+    const utility::string_t mxl_grain_status_transition_counter{ U("grainStatusTransitionCounter") };
+    const utility::string_t mxl_grain_status_pending{ U("grainStatusPending") };
+    const utility::string_t mxl_grain_status_message_pending{ U("grainStatusMessagePending") };
+    const utility::string_t mxl_grain_status_pending_received_time{ U("grainStatusPendingReceivedTime") };
+
+    const nmos::experimental::monitor_domain mxl_domain_monitor_domain{
+        mxl_domain_status_property_id, mxl_domain_status_message_property_id, mxl_domain_status_transition_counter_property_id,
+        mxl_domain_status_pending, mxl_domain_status_message_pending, mxl_domain_status_pending_received_time,
+        nmos::nc_overall_status::inactive, {}, nmos::nc_overall_status::healthy, U("MXL monitor activated"), nmos::nc_overall_status::inactive, U("MXL monitor deactivated")
+    };
+    const nmos::experimental::monitor_domain mxl_flow_monitor_domain{
+        mxl_flow_status_property_id, mxl_flow_status_message_property_id, mxl_flow_status_transition_counter_property_id,
+        mxl_flow_status_pending, mxl_flow_status_message_pending, mxl_flow_status_pending_received_time,
+        nmos::nc_overall_status::inactive, {}, nmos::nc_overall_status::healthy, U("MXL monitor activated"), nmos::nc_overall_status::inactive, U("MXL monitor deactivated")
+    };
+    const nmos::experimental::monitor_domain mxl_ring_monitor_domain{
+        mxl_ring_or_publish_status_property_id, mxl_ring_or_publish_status_message_property_id, mxl_ring_or_publish_status_transition_counter_property_id,
+        mxl_ring_status_pending, mxl_ring_status_message_pending, mxl_ring_status_pending_received_time,
+        nmos::nc_overall_status::inactive, {}, nmos::nc_overall_status::healthy, U("MXL receiver monitor activated"), nmos::nc_overall_status::inactive, U("MXL receiver monitor deactivated")
+    };
+    const nmos::experimental::monitor_domain mxl_publish_monitor_domain{
+        mxl_ring_or_publish_status_property_id, mxl_ring_or_publish_status_message_property_id, mxl_ring_or_publish_status_transition_counter_property_id,
+        mxl_publish_status_pending, mxl_publish_status_message_pending, mxl_publish_status_pending_received_time,
+        nmos::nc_overall_status::inactive, {}, nmos::nc_overall_status::healthy, U("MXL sender monitor activated"), nmos::nc_overall_status::inactive, U("MXL sender monitor deactivated")
+    };
+    const nmos::experimental::monitor_domain mxl_grain_monitor_domain{
+        mxl_grain_status_property_id, mxl_grain_status_message_property_id, mxl_grain_status_transition_counter_property_id,
+        mxl_grain_status_pending, mxl_grain_status_message_pending, mxl_grain_status_pending_received_time,
+        nmos::nc_overall_status::inactive, {}, nmos::nc_overall_status::healthy, U("MXL monitor activated"), nmos::nc_overall_status::inactive, U("MXL monitor deactivated")
+    };
+
     // Example of sender control class descriptors. Used below for setting up a sender control class
     void make_sender_control_descriptors(nmos::experimental::control_protocol_state & control_protocol_state, nmos::nc_class_id snd_class_id)
     {
@@ -1254,6 +1327,76 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
     // See https://github.com/AMWA-TV/nmos-device-control-mock/blob/main/code/src/NCModel/Features.ts
     if (0 <= nmos::fields::control_protocol_ws_port(model.settings))
     {
+        const std::vector<web::json::value> nv_mxl_receiver_monitor_properties{
+            nmos::experimental::make_control_class_property_descriptor(U("MXL domain status"), impl::mxl_domain_status_property_id, impl::mxl_domain_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL domain status message"), impl::mxl_domain_status_message_property_id, impl::mxl_domain_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL domain status transition counter"), impl::mxl_domain_status_transition_counter_property_id, impl::mxl_domain_status_transition_counter, U("NcUint64"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL flow status"), impl::mxl_flow_status_property_id, impl::mxl_flow_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL flow status message"), impl::mxl_flow_status_message_property_id, impl::mxl_flow_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL flow status transition counter"), impl::mxl_flow_status_transition_counter_property_id, impl::mxl_flow_status_transition_counter, U("NcUint64"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL ring status"), impl::mxl_ring_or_publish_status_property_id, impl::mxl_ring_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL ring status message"), impl::mxl_ring_or_publish_status_message_property_id, impl::mxl_ring_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL ring status transition counter"), impl::mxl_ring_or_publish_status_transition_counter_property_id, impl::mxl_ring_status_transition_counter, U("NcUint64"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL grain status"), impl::mxl_grain_status_property_id, impl::mxl_grain_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL grain status message"), impl::mxl_grain_status_message_property_id, impl::mxl_grain_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL grain status transition counter"), impl::mxl_grain_status_transition_counter_property_id, impl::mxl_grain_status_transition_counter, U("NcUint64"), true)
+        };
+        const std::vector<web::json::value> nv_mxl_sender_monitor_properties{
+            nmos::experimental::make_control_class_property_descriptor(U("MXL domain status"), impl::mxl_domain_status_property_id, impl::mxl_domain_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL domain status message"), impl::mxl_domain_status_message_property_id, impl::mxl_domain_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL domain status transition counter"), impl::mxl_domain_status_transition_counter_property_id, impl::mxl_domain_status_transition_counter, U("NcUint64"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL flow status"), impl::mxl_flow_status_property_id, impl::mxl_flow_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL flow status message"), impl::mxl_flow_status_message_property_id, impl::mxl_flow_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL flow status transition counter"), impl::mxl_flow_status_transition_counter_property_id, impl::mxl_flow_status_transition_counter, U("NcUint64"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL publish status"), impl::mxl_ring_or_publish_status_property_id, impl::mxl_publish_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL publish status message"), impl::mxl_ring_or_publish_status_message_property_id, impl::mxl_publish_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL publish status transition counter"), impl::mxl_ring_or_publish_status_transition_counter_property_id, impl::mxl_publish_status_transition_counter, U("NcUint64"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL grain status"), impl::mxl_grain_status_property_id, impl::mxl_grain_status, U("NcOverallStatus"), true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL grain status message"), impl::mxl_grain_status_message_property_id, impl::mxl_grain_status_message, U("NcString"), true, true),
+            nmos::experimental::make_control_class_property_descriptor(U("MXL grain status transition counter"), impl::mxl_grain_status_transition_counter_property_id, impl::mxl_grain_status_transition_counter, U("NcUint64"), true)
+        };
+        control_protocol_state.insert(nmos::experimental::make_control_class_descriptor(U("NVIDIA MXL receiver monitor class descriptor"), impl::nv_mxl_receiver_monitor_class_id, U("NvMXLReceiverMonitor"), nv_mxl_receiver_monitor_properties));
+        control_protocol_state.insert(nmos::experimental::make_control_class_descriptor(U("NVIDIA MXL sender monitor class descriptor"), impl::nv_mxl_sender_monitor_class_id, U("NvMXLSenderMonitor"), nv_mxl_sender_monitor_properties));
+        // Domains ordered from lowest to highest overallStatusMessage priority: ring/publish, grain, flow, domain
+        control_protocol_state.insert(impl::nv_mxl_receiver_monitor_class_id, { impl::mxl_ring_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain });
+        control_protocol_state.insert(impl::nv_mxl_sender_monitor_class_id, { impl::mxl_publish_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain });
+
+        auto make_mxl_monitor = [](const nmos::nc_class_id& class_id, nmos::nc_oid oid, nmos::nc_oid owner, const utility::string_t& role, const utility::string_t& user_label, const utility::string_t& description, const web::json::value& touchpoints,
+            const std::vector<std::tuple<utility::string_t, utility::string_t, utility::string_t>>& status_fields,
+            const std::vector<nmos::experimental::monitor_domain>& monitor_domains)
+        {
+            auto data = nmos::nc::details::make_status_monitor(class_id, oid, true, owner, role, user_label, description, touchpoints, value::null(), true, nmos::nc_overall_status::inactive, U(""), 3);
+            data[nmos::fields::nc::monitor_activation_time] = value::number(0);
+            for (size_t index = 0; index < status_fields.size(); ++index)
+            {
+                data[std::get<0>(status_fields[index])] = value::number(nmos::nc_overall_status::inactive);
+                data[std::get<1>(status_fields[index])] = value::null();
+                data[std::get<2>(status_fields[index])] = value::number(0);
+                data[monitor_domains[index].status_pending_field_name] = value::number(nmos::nc_overall_status::inactive);
+                data[monitor_domains[index].status_message_pending_field_name] = value::null();
+                data[monitor_domains[index].status_pending_received_time_field_name] = value::number(0);
+            }
+            return nmos::control_protocol_resource{ nmos::is12_versions::v1_0, nmos::types::nc_status_monitor, std::move(data), true };
+        };
+        const std::vector<std::tuple<utility::string_t, utility::string_t, utility::string_t>> mxl_receiver_monitor_status_fields{
+            { impl::mxl_ring_status, impl::mxl_ring_status_message, impl::mxl_ring_status_transition_counter },
+            { impl::mxl_grain_status, impl::mxl_grain_status_message, impl::mxl_grain_status_transition_counter },
+            { impl::mxl_flow_status, impl::mxl_flow_status_message, impl::mxl_flow_status_transition_counter },
+            { impl::mxl_domain_status, impl::mxl_domain_status_message, impl::mxl_domain_status_transition_counter }
+        };
+        const std::vector<nmos::experimental::monitor_domain> mxl_receiver_monitor_domains{
+            impl::mxl_ring_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain
+        };
+        const std::vector<std::tuple<utility::string_t, utility::string_t, utility::string_t>> mxl_sender_monitor_status_fields{
+            { impl::mxl_publish_status, impl::mxl_publish_status_message, impl::mxl_publish_status_transition_counter },
+            { impl::mxl_grain_status, impl::mxl_grain_status_message, impl::mxl_grain_status_transition_counter },
+            { impl::mxl_flow_status, impl::mxl_flow_status_message, impl::mxl_flow_status_transition_counter },
+            { impl::mxl_domain_status, impl::mxl_domain_status_message, impl::mxl_domain_status_transition_counter }
+        };
+        const std::vector<nmos::experimental::monitor_domain> mxl_sender_monitor_domains{
+            impl::mxl_publish_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain
+        };
+
         // example to create a non-standard Gain control class
         const auto gain_control_class_id = nmos::nc::make_class_id(nmos::nc_worker_class_id, 0, { 1 });
         const web::json::field_as_number gain_value{ U("gainValue") };
@@ -1594,7 +1737,7 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
         // making a block rebuildable allows block members to be added or removed by the Configuration API in Rebuild mode
         nmos::make_rebuildable(receiver_monitors_block);
         // restrict the allowed classes for members of this block
-        nmos::set_block_allowed_member_classes(receiver_monitors_block, {nmos::nc_receiver_monitor_class_id});
+        nmos::set_block_allowed_member_classes(receiver_monitors_block, { nmos::nc_receiver_monitor_class_id, impl::nv_mxl_receiver_monitor_class_id });
 
         // example receiver-monitor(s)
         {
@@ -1615,6 +1758,22 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
                     nmos::nc::push_back(receiver_monitors_block, receiver_monitor);
                 }
             }
+            for (int index = 0; index < how_many; ++index)
+            {
+                for (const auto& port : mxl_receiver_ports)
+                {
+                    const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, port, index);
+
+                    utility::ostringstream_t role;
+                    role << U("mxl-receiver-monitor-") << ++count;
+                    const auto receiver = nmos::find_resource(model.node_resources, receiver_id);
+                    auto receiver_monitor = make_mxl_monitor(impl::nv_mxl_receiver_monitor_class_id, ++oid, receiver_monitors_block_oid, role.str(), nmos::fields::label(receiver->data), nmos::fields::description(receiver->data),
+                        value_of({ { nmos::nc::details::make_touchpoint_nmos({ nmos::ncp_touchpoint_resource_types::receiver, receiver_id }) } }),
+                        mxl_receiver_monitor_status_fields, mxl_receiver_monitor_domains);
+                    nmos::set_object_dependency_paths(receiver_monitor, { { U("root"), U("receiver-monitors") } });
+                    nmos::nc::push_back(receiver_monitors_block, receiver_monitor);
+                }
+            }
         }
 
         const auto sender_monitors_block_oid = ++oid;
@@ -1622,7 +1781,7 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
         // making a block rebuildable allows block members to be added or removed by the Configuration API in Rebuild mode
         nmos::make_rebuildable(sender_monitors_block);
         // restrict the allowed classes for members of this block
-        nmos::set_block_allowed_member_classes(sender_monitors_block, { nmos::nc_sender_monitor_class_id });
+        nmos::set_block_allowed_member_classes(sender_monitors_block, { nmos::nc_sender_monitor_class_id, impl::nv_mxl_sender_monitor_class_id });
 
         // example sender-monitor(s)
         {
@@ -1640,6 +1799,22 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
                     // optionally indicate dependencies within the device model
                     nmos::set_object_dependency_paths(sender_monitor, { {U("root"), U("sender-monitors")} });
                     // add sender-monitor to sender-monitors-block
+                    nmos::nc::push_back(sender_monitors_block, sender_monitor);
+                }
+            }
+            for (int index = 0; index < how_many; ++index)
+            {
+                for (const auto& port : mxl_sender_ports)
+                {
+                    const auto sender_id = impl::make_id(seed_id, nmos::types::sender, port, index);
+
+                    utility::ostringstream_t role;
+                    role << U("mxl-sender-monitor-") << ++count;
+                    const auto sender = nmos::find_resource(model.node_resources, sender_id);
+                    auto sender_monitor = make_mxl_monitor(impl::nv_mxl_sender_monitor_class_id, ++oid, sender_monitors_block_oid, role.str(), nmos::fields::label(sender->data), nmos::fields::description(sender->data),
+                        value_of({ { nmos::nc::details::make_touchpoint_nmos({ nmos::ncp_touchpoint_resource_types::sender, sender_id }) } }),
+                        mxl_sender_monitor_status_fields, mxl_sender_monitor_domains);
+                    nmos::set_object_dependency_paths(sender_monitor, { { U("root"), U("sender-monitors") } });
                     nmos::nc::push_back(sender_monitors_block, sender_monitor);
                 }
             }
@@ -1717,9 +1892,11 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
     const auto how_many = impl::fields::how_many(model.settings);
     const auto sender_ports = impl::parse_ports(impl::fields::senders(model.settings));
     const auto rtp_sender_ports = boost::copy_range<std::vector<impl::port>>(sender_ports | boost::adaptors::filtered(impl::is_rtp_port));
+    const auto mxl_sender_ports = boost::copy_range<std::vector<impl::port>>(sender_ports | boost::adaptors::filtered(impl::is_mxl_port));
     const auto ws_sender_ports = boost::copy_range<std::vector<impl::port>>(sender_ports | boost::adaptors::filtered(impl::is_ws_port));
     const auto receiver_ports = impl::parse_ports(impl::fields::receivers(model.settings));
     const auto rtp_receiver_ports = boost::copy_range<std::vector<impl::port>>(receiver_ports | boost::adaptors::filtered(impl::is_rtp_port));
+    const auto mxl_receiver_ports = boost::copy_range<std::vector<impl::port>>(receiver_ports | boost::adaptors::filtered(impl::is_mxl_port));
     const auto simulate_status_monitor_activity = impl::fields::simulate_status_monitor_activity(model.settings);
 
     auto& control_protocol_resources = model.control_protocol_resources;
@@ -1739,6 +1916,14 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
     auto set_sender_monitor_essence_status = nmos::make_set_sender_monitor_essence_status_handler(control_protocol_resources, control_protocol_state, gate);
     auto set_sender_monitor_synchronization_source_id = nmos::make_set_sender_monitor_synchronization_source_id_handler(control_protocol_resources, control_protocol_state, gate);
 
+    auto get_control_protocol_class_descriptor = nmos::make_get_control_protocol_class_descriptor_handler(control_protocol_state);
+    auto get_monitor_domains = nmos::make_get_monitor_domains_handler(control_protocol_state);
+    auto monitor_status_pending = nmos::make_monitor_status_pending_handler(control_protocol_state);
+    auto set_mxl_monitor_status = [&control_protocol_resources, get_control_protocol_class_descriptor, get_monitor_domains, monitor_status_pending, &gate](nmos::nc_oid oid, int status, const utility::string_t& status_message, const nmos::experimental::monitor_domain& monitor_domain)
+    {
+        return nmos::nc::set_monitor_status_with_delay(control_protocol_resources, oid, status, status_message, monitor_domain, monitor_status_pending, get_control_protocol_class_descriptor, get_monitor_domains, gate);
+    };
+
     // start background tasks to intermittently update the state of the event sources, to cause events to be emitted to connected receivers
 
     nmos::details::seed_generator events_seeder;
@@ -1747,10 +1932,10 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
     auto cancellation_source = pplx::cancellation_token_source();
 
     auto token = cancellation_source.get_token();
-    auto events = pplx::do_while([&model, seed_id, how_many, simulate_status_monitor_activity, ws_sender_ports, rtp_receiver_ports, rtp_sender_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_control_protocol_property, events_engine, &gate, token]
+    auto events = pplx::do_while([&model, seed_id, how_many, simulate_status_monitor_activity, ws_sender_ports, rtp_receiver_ports, mxl_receiver_ports, rtp_sender_ports, mxl_sender_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_mxl_monitor_status, set_control_protocol_property, events_engine, &gate, token]
     {
         const auto event_interval = std::uniform_real_distribution<>(0.5, 5.0)(*events_engine);
-        return pplx::complete_after(std::chrono::milliseconds(std::chrono::milliseconds::rep(1000 * event_interval)), token).then([&model, seed_id, how_many, simulate_status_monitor_activity, ws_sender_ports, rtp_receiver_ports, rtp_sender_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_control_protocol_property, events_engine, &gate]
+        return pplx::complete_after(std::chrono::milliseconds(std::chrono::milliseconds::rep(1000 * event_interval)), token).then([&model, seed_id, how_many, simulate_status_monitor_activity, ws_sender_ports, rtp_receiver_ports, mxl_receiver_ports, rtp_sender_ports, mxl_sender_ports, get_control_protocol_property, set_receiver_monitor_link_status, set_receiver_monitor_connection_status, set_receiver_monitor_external_synchronization_status, set_receiver_monitor_stream_status, set_receiver_monitor_synchronization_source_id, set_sender_monitor_link_status, set_sender_monitor_transmission_status, set_sender_monitor_external_synchronization_status, set_sender_monitor_essence_status, set_sender_monitor_synchronization_source_id, set_mxl_monitor_status, set_control_protocol_property, events_engine, &gate]
         {
             auto lock = model.write_lock();
 
@@ -1955,6 +2140,80 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
                                 }
                                 default:
                                     break;
+                            }
+                        }
+                    }
+                }
+            }
+            // example setting MXL receiver monitor statuses
+            if (simulate_status_monitor_activity)
+            {
+                auto& resources = model.control_protocol_resources;
+                for (int index = 0; index < how_many; ++index)
+                {
+                    for (const auto& port : mxl_receiver_ports)
+                    {
+                        const auto receiver_id = impl::make_id(seed_id, nmos::types::receiver, port, index);
+                        const auto receiver_monitor = nmos::nc::find_resource(resources, nmos::types::nc_status_monitor, receiver_id);
+                        if (resources.end() != receiver_monitor)
+                        {
+                            const auto oid = nmos::fields::nc::oid(receiver_monitor->data);
+                            const auto overall_status = get_control_protocol_property(oid, nmos::nc_status_monitor_overall_status_property_id);
+                            if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
+                            {
+                                const auto status = nmos::nc_overall_status::status(nmos::nc_overall_status::healthy + rand() % 3);
+                                switch (rand() % 4)
+                                {
+                                    case 0:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("MXL domain unavailable") : U(""), impl::mxl_domain_monitor_domain);
+                                        break;
+                                    case 1:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("MXL flow unavailable") : U(""), impl::mxl_flow_monitor_domain);
+                                        break;
+                                    case 2:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("MXL ring buffer error") : U(""), impl::mxl_ring_monitor_domain);
+                                        break;
+                                    case 3:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("Invalid MXL grain") : U(""), impl::mxl_grain_monitor_domain);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // example setting MXL sender monitor statuses
+            if (simulate_status_monitor_activity)
+            {
+                auto& resources = model.control_protocol_resources;
+                for (int index = 0; index < how_many; ++index)
+                {
+                    for (const auto& port : mxl_sender_ports)
+                    {
+                        const auto sender_id = impl::make_id(seed_id, nmos::types::sender, port, index);
+                        const auto sender_monitor = nmos::nc::find_resource(resources, nmos::types::nc_status_monitor, sender_id);
+                        if (resources.end() != sender_monitor)
+                        {
+                            const auto oid = nmos::fields::nc::oid(sender_monitor->data);
+                            const auto overall_status = get_control_protocol_property(oid, nmos::nc_status_monitor_overall_status_property_id);
+                            if (overall_status.as_integer() != nmos::nc_overall_status::inactive)
+                            {
+                                const auto status = nmos::nc_overall_status::status(nmos::nc_overall_status::healthy + rand() % 3);
+                                switch (rand() % 4)
+                                {
+                                    case 0:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("MXL domain unavailable") : U(""), impl::mxl_domain_monitor_domain);
+                                        break;
+                                    case 1:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("MXL flow unavailable") : U(""), impl::mxl_flow_monitor_domain);
+                                        break;
+                                    case 2:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("MXL publish error") : U(""), impl::mxl_publish_monitor_domain);
+                                        break;
+                                    case 3:
+                                        set_mxl_monitor_status(oid, status, status > nmos::nc_overall_status::healthy ? U("Invalid MXL grain") : U(""), impl::mxl_grain_monitor_domain);
+                                        break;
+                                }
                             }
                         }
                     }
