@@ -1358,8 +1358,8 @@ void node_implementation_init(nmos::node_model& model, nmos::experimental::contr
         control_protocol_state.insert(nmos::experimental::make_control_class_descriptor(U("NVIDIA MXL receiver monitor class descriptor"), impl::nv_mxl_receiver_monitor_class_id, U("NvMXLReceiverMonitor"), nv_mxl_receiver_monitor_properties));
         control_protocol_state.insert(nmos::experimental::make_control_class_descriptor(U("NVIDIA MXL sender monitor class descriptor"), impl::nv_mxl_sender_monitor_class_id, U("NvMXLSenderMonitor"), nv_mxl_sender_monitor_properties));
         // Domains ordered from lowest to highest overallStatusMessage priority: ring/publish, grain, flow, domain
-        control_protocol_state.insert(impl::nv_mxl_receiver_monitor_class_id, { impl::mxl_ring_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain });
-        control_protocol_state.insert(impl::nv_mxl_sender_monitor_class_id, { impl::mxl_publish_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain });
+        control_protocol_state.insert_monitor_domains(impl::nv_mxl_receiver_monitor_class_id, { impl::mxl_ring_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain });
+        control_protocol_state.insert_monitor_domains(impl::nv_mxl_sender_monitor_class_id, { impl::mxl_publish_monitor_domain, impl::mxl_grain_monitor_domain, impl::mxl_flow_monitor_domain, impl::mxl_domain_monitor_domain });
 
         auto make_mxl_monitor = [](const nmos::nc_class_id& class_id, nmos::nc_oid oid, nmos::nc_oid owner, const utility::string_t& role, const utility::string_t& user_label, const utility::string_t& description, const web::json::value& touchpoints,
             const std::vector<std::tuple<utility::string_t, utility::string_t, utility::string_t>>& status_fields,
@@ -1921,7 +1921,7 @@ void node_implementation_run(nmos::node_model& model, nmos::experimental::contro
     auto monitor_status_pending = nmos::make_monitor_status_pending_handler(control_protocol_state);
     auto set_mxl_monitor_status = [&control_protocol_resources, get_control_protocol_class_descriptor, get_monitor_domains, monitor_status_pending, &gate](nmos::nc_oid oid, int status, const utility::string_t& status_message, const nmos::experimental::monitor_domain& monitor_domain)
     {
-        return nmos::nc::set_monitor_status_with_delay(control_protocol_resources, oid, status, status_message, monitor_domain, monitor_status_pending, get_control_protocol_class_descriptor, get_monitor_domains, gate);
+        return nmos::nc::set_monitor_status(control_protocol_resources, oid, status, status_message, monitor_domain, monitor_status_pending, get_control_protocol_class_descriptor, get_monitor_domains, gate);
     };
 
     // start background tasks to intermittently update the state of the event sources, to cause events to be emitted to connected receivers
